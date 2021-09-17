@@ -6,7 +6,10 @@
 
 // This test is currently written only to demonstrate the behavior we're
 // seeing on v8. The text of the error messages in particular are
-// engine specific.
+// engine specific. Since these tests demonstrate violation of the
+// fundamental object invariants, there's definitely a bug somewhere.
+// But we don't yet know if the bug's origin is v8 or an inconsistency
+// in the EcmaScript spec itself.
 
 // eslint-disable-next-line import/no-extraneous-dependencies
 import test from 'ava';

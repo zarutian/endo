@@ -31,7 +31,9 @@ test('freeze module-namespace-const-1', t => {
 
   // Surprising that the `freeze` both works and throws. Surprising that the
   // error seems to indicate that it did not freeze the property that it
-  // actually did freeze.
+  // actually did freeze. Worse, the text of the error looks like an
+  // "override mistake" problem, which is actually completely irrelevant.
+  // The error message refers to "assign" but no assignment is happening.
 
   t.throws(() => freeze(nsConst1), {
     message: /Cannot assign to read only property 'one' of object '\[object Module\]'/,

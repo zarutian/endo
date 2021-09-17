@@ -95,8 +95,8 @@ test('freeze module-namespace-live-5-6', t => {
   t.is(isFrozen(nsLive56), false, 'not pre-frozen');
   t.is(isExtensible(nsLive56), false, 'is pre non-extensible');
   const descs1 = getOwnPropertyDescriptors(nsLive56);
-  t.is(descs1.writeFive.writable, true, 'let writeFive is writable');
-  t.is(descs1.five.writable, true, 'const five is writable');
+  t.is(descs1.writeFive.writable, true, 'const writeFive is writable');
+  t.is(descs1.five.writable, true, 'let five is writable');
 
   // Slightly surpring that `four` was frozen before `three` above but
   // `writeFive` (which is textually second, like `four` was) is frozen
@@ -107,8 +107,8 @@ test('freeze module-namespace-live-5-6', t => {
   });
   t.is(isFrozen(nsLive56), false, 'still not frozen');
   const descs2 = getOwnPropertyDescriptors(nsLive56);
-  t.is(descs2.five.writable, false, 'five no longer writable');
-  t.is(descs2.writeFive.writable, true, 'let writeFive still writable');
+  t.is(descs2.five.writable, false, 'let five no longer writable');
+  t.is(descs2.writeFive.writable, true, 'const writeFive still writable');
   // console.log(JSON.stringify(descs2));
 
   t.throws(() => freeze(nsLive56), {
@@ -116,8 +116,8 @@ test('freeze module-namespace-live-5-6', t => {
   });
   t.is(isFrozen(nsLive56), true, 'now it is frozen');
   const descs3 = getOwnPropertyDescriptors(nsLive56);
-  t.is(descs3.five.writable, false, 'five no longer writable');
-  t.is(descs3.writeFive.writable, false, 'let writeFive no longer writable');
+  t.is(descs3.five.writable, false, 'let five no longer writable');
+  t.is(descs3.writeFive.writable, false, 'const writeFive no longer writable');
   // console.log(JSON.stringify(descs3));
 
   t.is(typeof nsLive56.writeFive, 'function');

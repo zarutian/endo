@@ -46,7 +46,7 @@ export const parseCjs = async (
         // return namespace.default;
 
         if (Object.keys(namespace).length > 1) {
-          return Object.assign({}, namespace.default, namespace); // this resembles Node's behavior more closely
+          return { ...namespace.default, ...namespace }; // this resembles Node's behavior more closely
         } else {
           return namespace.default;
         }

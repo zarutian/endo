@@ -28,32 +28,42 @@ export const parseCjs = async (
   const execute = async (moduleExports, compartment, resolvedImports) => {
     const functor = compartment.evaluate(
       `(function (require, exports, module, __filename, __dirname) { ${source} //*/\n})\n//# sourceURL=${location}`,
+      { __evadeImportExpressionTest__: true },
     );
-
+    let moduleReferenceCopy = moduleExports;
     const module = freeze({
       get exports() {
-        return moduleExports;
+        return moduleReferenceCopy;
       },
       set exports(value) {
-        moduleExports.default = value;
+        moduleReferenceCopy = value;
       },
     });
 
     const require = freeze((/** @type {string} */ importSpecifier) => {
       const namespace = compartment.importNow(resolvedImports[importSpecifier]);
       if (namespace.default !== undefined) {
-        return namespace.default;
+        // return namespace.default;
+
+        if (Object.keys(namespace).length > 1) {
+          return Object.assign({}, namespace.default, namespace); // this resembles Node's behavior more closely
+        } else {
+          return namespace.default;
+        }
       }
       return namespace;
     });
 
     functor(
       require,
-      moduleExports,
+      moduleReferenceCopy,
       module,
       location, // __filename
       new URL('./', location).toString(), // __dirname
     );
+    if (moduleReferenceCopy !== moduleExports) {
+      moduleExports.default = moduleReferenceCopy;
+    }
   };
 
   return {

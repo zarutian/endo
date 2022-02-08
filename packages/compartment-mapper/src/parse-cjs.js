@@ -25,10 +25,9 @@ export const parseCjs = async (
    * @param {Compartment} compartment
    * @param {Record<string, string>} resolvedImports
    */
-  const execute = async (moduleExports, compartment, resolvedImports) => {
+  const execute = (moduleExports, compartment, resolvedImports) => {
     const functor = compartment.evaluate(
       `(function (require, exports, module, __filename, __dirname) { ${source} //*/\n})\n//# sourceURL=${location}`,
-      { __evadeImportExpressionTest__: true },
     );
     let moduleReferenceCopy = moduleExports;
     const module = freeze({

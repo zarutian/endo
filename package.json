@@ -11,6 +11,7 @@
     "packages/cli",
     "packages/compartment-mapper",
     "packages/daemon",
+    "packages/endo-exec",
     "packages/eslint-config",
     "packages/eslint-plugin",
     "packages/eventual-send",

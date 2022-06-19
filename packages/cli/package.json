@@ -30,6 +30,8 @@
     "@endo/lockdown": "^0.1.14",
     "@endo/where": "^0.2.8",
     "commander": "^5.0.0",
+    "endo-exec": "^0.1.0",
+    "import-meta-resolve": "^2.0.3",
     "ses": "^0.15.16"
   },
   "devDependencies": {

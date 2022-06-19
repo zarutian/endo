@@ -9,6 +9,8 @@ import fs from 'fs';
 import path from 'path';
 import url from 'url';
 import crypto from 'crypto';
+import { fork } from 'child_process';
+import { moduleResolve } from 'import-meta-resolve';
 
 import { Command } from 'commander';
 import { start, stop, restart, clean, reset } from '@endo/daemon';
@@ -65,6 +67,23 @@ export const main = async rawArgs => {
   where.command('cache').action(async _cmd => {
     console.log(cachePath);
   });
+
+  program
+    .command('exec -- <script> [args...]')
+    .action(async (script, args, _cmd) => {
+      const u = moduleResolve('endo-exec/endo-exec.cjs', import.meta.url);
+      const endoExec = url.fileURLToPath(u);
+      return new Promise((resolve, reject) => {
+        const cp = fork(endoExec, [script, ...args], {
+          stdio: 'inherit',
+        });
+        cp.on('error', reject);
+        cp.on('close', code => {
+          process.exitCode = code;
+          resolve(code);
+        });
+      });
+    });
 
   program.command('start').action(async _cmd => {
     await start();

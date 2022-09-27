@@ -3,7 +3,6 @@
 import test from 'ava';
 import { makeSafeEvaluator } from '../src/make-safe-evaluator.js';
 
-
 test('scope handling - realm globalThis property info leak', t => {
   t.plan(8);
 

@@ -269,7 +269,9 @@ test('scope behavior - strict vs sloppy locally non-existing global set', t => {
     delete globalThis.realmGlobalProp;
   });
 
-  t.throws(() => evaluateStrict('realmGlobalProp = 123'), { instanceOf: ReferenceError });
+  t.throws(() => evaluateStrict('realmGlobalProp = 123'), {
+    instanceOf: ReferenceError,
+  });
   t.throws(() => evaluateStrict('missingRealmGlobalProp = 123'), {
     instanceOf: ReferenceError,
   });

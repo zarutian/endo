@@ -6,30 +6,33 @@ import { makeSafeEvaluator } from '../src/make-safe-evaluator.js';
 test('scope behavior - lookup behavior', t => {
   t.plan(7);
 
-  const globalObject = { foo: {} };
-  const globalLexicals = { foobar: {} };
+  const globalObject = { globalProp: {} };
+  const globalLexicals = { lexicalProp: {} };
 
   const { safeEvaluate: evaluate } = makeSafeEvaluator({
     globalObject,
     globalLexicals,
   });
 
-  globalThis.bar = {};
+  globalThis.realmGlobalProp = {};
+  t.teardown(() => {
+    delete globalThis.realmGlobalProp;
+  });
 
   t.is(evaluate('globalThis'), undefined);
   t.is(evaluate('eval'), undefined);
-  t.is(evaluate('bar'), undefined);
-  t.throws(() => evaluate('dummy'), { instanceOf: ReferenceError });
+  t.is(evaluate('realmGlobalProp'), undefined);
+  t.throws(() => evaluate('missingProp'), { instanceOf: ReferenceError });
 
-  t.is(evaluate('foo'), globalObject.foo);
-  t.is(evaluate('foobar'), globalLexicals.foobar);
+  t.is(evaluate('globalProp'), globalObject.globalProp);
+  t.is(evaluate('lexicalProp'), globalLexicals.lexicalProp);
+
+  // Known compromise in fidelity of the emulated script environment:
   t.deepEqual(evaluate('arguments'), ['arguments']);
-
-  delete globalThis.bar;
 });
 
 test('scope behavior - lookup in sloppyGlobalsMode', t => {
-  t.plan(7);
+  t.plan(5);
 
   const globalObject = {};
   const globalLexicals = {};
@@ -39,63 +42,167 @@ test('scope behavior - lookup in sloppyGlobalsMode', t => {
     sloppyGlobalsMode: true,
   });
 
-  globalThis.bar = {};
+  globalThis.realmGlobalProp = {};
+  t.teardown(() => {
+    delete globalThis.realmGlobalProp;
+  });
 
   t.is(evaluate('globalThis'), undefined);
   t.is(evaluate('eval'), undefined);
-  t.is(evaluate('foo'), undefined);
-  t.is(evaluate('bar'), undefined);
-  t.is(evaluate('foobar'), undefined);
-  t.is(evaluate('dummy'), undefined);
+  t.is(evaluate('realmGlobalProp'), undefined);
+  t.is(evaluate('missingProp'), undefined);
 
+  // Known compromise in fidelity of the emulated script environment:
   t.deepEqual(evaluate('arguments'), ['arguments']);
-
-  delete globalThis.bar;
 });
 
 test('scope behavior - this-value', t => {
-  t.plan(6);
+  t.plan(17);
 
-  let hogeValue;
-  let fugaValue;
+  let globalObjectProtoSetterValue;
+  let globalObjectSetterValue;
+  let globalLexicalsProtoSetterValue;
+  let globalLexicalsSetterValue;
 
-  const globalObject = {
-    get foo() {
-      return this;
+  const globalObjectProto = Object.create(null, {
+    globalObjectProtoGetter: {
+      get() {
+        return this;
+      },
     },
-    set hoge(_value) {
-      hogeValue = this;
+    globalObjectProtoSetter: {
+      set(_value) {
+        globalObjectProtoSetterValue = this;
+      },
     },
-    quux() {
-      return this;
+    globalObjectProtoFn: {
+      value() {
+        return this;
+      },
+      configurable: true,
+      writable: true,
     },
-  };
-  const globalLexicals = {
-    get bar() {
-      return this;
+    globalObjectProtoFnImmutable: {
+      value() {
+        return this;
+      },
+      configurable: false,
+      writable: false,
     },
-    set fuga(_value) {
-      fugaValue = this;
+  });
+  const globalObject = Object.create(globalObjectProto, {
+    globalObjectGetter: {
+      get() {
+        return this;
+      },
     },
-    garply() {
-      return this;
+    globalObjectSetter: {
+      set(_value) {
+        globalObjectSetterValue = this;
+      },
     },
-  };
+    globalObjectFn: {
+      value() {
+        return this;
+      },
+      configurable: true,
+      writable: true,
+    },
+    globalObjectFnImmutable: {
+      value() {
+        return this;
+      },
+      configurable: false,
+      writable: false,
+    },
+  });
+  const globalLexicalsProto = Object.create(null, {
+    globalLexicalsProtoGetter: {
+      get() {
+        return this;
+      },
+    },
+    globalLexicalsProtoSetter: {
+      set(_value) {
+        globalLexicalsProtoSetterValue = this;
+      },
+    },
+    globalLexicalsProtoFn: {
+      value() {
+        return this;
+      },
+      configurable: true,
+      writable: true,
+    },
+    globalLexicalsProtoFnImmutable: {
+      value() {
+        return this;
+      },
+      configurable: false,
+      writable: false,
+    },
+  });
+  const globalLexicals = Object.create(globalLexicalsProto, {
+    globalLexicalsGetter: {
+      get() {
+        return this;
+      },
+    },
+    globalLexicalsSetter: {
+      set(_value) {
+        globalLexicalsSetterValue = this;
+      },
+    },
+    globalLexicalsFn: {
+      value() {
+        return this;
+      },
+      configurable: true,
+      writable: true,
+    },
+    globalLexicalsFnImmutable: {
+      value() {
+        return this;
+      },
+      configurable: false,
+      writable: false,
+    },
+  });
+
+  const knownScopeProxies = new WeakSet();
   const { safeEvaluate: evaluate } = makeSafeEvaluator({
     globalObject,
     globalLexicals,
+    knownScopeProxies,
   });
 
-  t.is(evaluate('foo'), globalObject);
-  t.is(evaluate('bar'), globalLexicals);
+  // Known compromise in fidelity of the emulated script environment (all tests):
 
-  evaluate('hoge = 123');
-  evaluate('fuga = 456');
-  t.is(hogeValue, globalObject);
-  t.is(fugaValue, globalLexicals);
+  t.is(evaluate('globalObjectProtoGetter'), globalObject);
+  t.is(evaluate('globalObjectGetter'), globalObject);
+  t.is(evaluate('globalLexicalsProtoGetter'), globalObject);
+  t.is(evaluate('globalLexicalsGetter'), globalObject);
 
-  t.is(evaluate('quux()'), globalObject);
-  t.is(evaluate('garply()'), globalLexicals);
+  evaluate('globalObjectProtoSetter = 123');
+  t.is(globalObjectProtoSetterValue, globalObject);
+  evaluate('globalObjectSetter = 123');
+  t.is(globalObjectSetterValue, globalObject);
+  // bug: properties in prototype of globalLexicals error on set
+  t.throws(() => evaluate('globalLexicalsProtoSetter = 123'), {
+    instanceOf: Error,
+  });
+  t.is(globalLexicalsProtoSetterValue, undefined);
+  evaluate('globalLexicalsSetter = 123');
+  t.is(globalLexicalsSetterValue, globalObject);
+
+  t.true(knownScopeProxies.has(evaluate('globalObjectProtoFn()')));
+  t.true(knownScopeProxies.has(evaluate('globalObjectFn()')));
+  t.true(knownScopeProxies.has(evaluate('globalObjectProtoFnImmutable()')));
+  t.is(evaluate('globalObjectFnImmutable()'), undefined);
+  t.true(knownScopeProxies.has(evaluate('globalLexicalsProtoFn()')));
+  t.true(knownScopeProxies.has(evaluate('globalLexicalsFn()')));
+  t.true(knownScopeProxies.has(evaluate('globalLexicalsProtoFnImmutable()')));
+  t.is(evaluate('globalLexicalsFnImmutable()'), undefined);
 });
 
 test('scope behavior - assignment', t => {
@@ -111,7 +218,10 @@ test('scope behavior - assignment', t => {
     evaluate(`(value) => { ${leftHandRef} = value }`)(value);
   };
 
-  globalThis.bar = {};
+  globalThis.realmGlobalProp = {};
+  t.teardown(() => {
+    delete globalThis.realmGlobalProp;
+  });
 
   const evil = {};
   // eslint-disable-next-line no-eval
@@ -122,13 +232,13 @@ test('scope behavior - assignment', t => {
   t.is(globalThis.eval, originalEval);
 
   const bar = {};
-  const originalBar = globalThis.bar;
-  doAssignment('this.bar', bar);
-  t.is(globalObject.bar, bar);
-  t.is(globalThis.bar, originalBar);
+  const originalBar = globalThis.realmGlobalProp;
+  doAssignment('this.realmGlobalProp', bar);
+  t.is(globalObject.realmGlobalProp, bar);
+  t.is(globalThis.realmGlobalProp, originalBar);
 
   const foo = {};
-  const originalFoo = globalObject.for;
+  const originalFoo = globalObject.foo;
   doAssignment('foo', foo);
   t.is(globalObject.foo, foo);
   t.not(globalObject.foo, originalFoo);
@@ -144,8 +254,6 @@ test('scope behavior - assignment', t => {
 
   t.is(Object.keys(globalObject).length, 3);
   t.is(Object.keys(globalLexicals).length, 1);
-
-  delete globalThis.bar;
 });
 
 test('scope behavior - strict vs sloppy locally non-existing global set', t => {
@@ -161,18 +269,18 @@ test('scope behavior - strict vs sloppy locally non-existing global set', t => {
     sloppyGlobalsMode: true,
   });
 
-  globalThis.bar = {};
+  globalThis.realmGlobalProp = {};
+  t.teardown(() => {
+    delete globalThis.realmGlobalProp;
+  });
 
-  t.throws(() => evaluateStrict('bar = 123'), {
+  // Known compromise in fidelity of the emulated script environment:
+  t.notThrows(() => evaluateStrict('realmGlobalProp = 123'));
+  t.throws(() => evaluateStrict('missingRealmGlobalProp = 123'), {
     instanceOf: ReferenceError,
   });
-  t.throws(() => evaluateStrict('abc = 123'), {
-    instanceOf: ReferenceError,
-  });
-  t.notThrows(() => evaluateSloppy('bar = 456'));
-  t.notThrows(() => evaluateSloppy('xyz = 456'));
-
-  delete globalThis.bar;
+  t.notThrows(() => evaluateSloppy('realmGlobalProp = 456'));
+  t.notThrows(() => evaluateSloppy('missingRealmGlobalProp = 456'));
 });
 
 test('scope behavior - realm globalThis property info leak', t => {
@@ -183,17 +291,126 @@ test('scope behavior - realm globalThis property info leak', t => {
     globalObject,
   });
 
-  t.is(evaluate('typeof foo'), 'undefined');
-  t.is(evaluate('typeof bar'), 'undefined');
-  t.throws(() => evaluate('foo'), { instanceOf: ReferenceError });
-  t.throws(() => evaluate('bar'), { instanceOf: ReferenceError });
+  t.is(evaluate('typeof missingRealmGlobalProp'), 'undefined');
+  t.is(evaluate('typeof eventuallyAssignedRealmGlobalProp'), 'undefined');
+  t.throws(() => evaluate('missingRealmGlobalProp'), {
+    instanceOf: ReferenceError,
+  });
+  t.throws(() => evaluate('eventuallyAssignedRealmGlobalProp'), {
+    instanceOf: ReferenceError,
+  });
 
-  globalThis.bar = {};
+  globalThis.eventuallyAssignedRealmGlobalProp = {};
+  t.teardown(() => {
+    delete globalThis.eventuallyAssignedRealmGlobalProp;
+  });
 
-  t.is(evaluate('typeof foo'), 'undefined');
-  t.is(evaluate('typeof bar'), 'undefined');
-  t.throws(() => evaluate('foo'), { instanceOf: ReferenceError });
-  t.is(evaluate('bar'), undefined);
+  t.is(evaluate('typeof missingRealmGlobalProp'), 'undefined');
+  t.is(evaluate('typeof eventuallyAssignedRealmGlobalProp'), 'undefined');
+  t.throws(() => evaluate('missingRealmGlobalProp'), {
+    instanceOf: ReferenceError,
+  });
+  // Known compromise in fidelity of the emulated script environment:
+  t.is(evaluate('eventuallyAssignedRealmGlobalProp'), undefined);
+});
 
-  delete globalThis.bar;
+test('scope behavior - Symbol.unscopables fidelity test', t => {
+  t.plan(32);
+
+  const globalObject = {
+    Symbol,
+    [Symbol.unscopables]: {
+      eventuallyAssignedRealmGlobalProp: true,
+      localProp: true,
+    },
+    localProp: {},
+  };
+  const { safeEvaluate: evaluate } = makeSafeEvaluator({
+    globalObject,
+  });
+
+  t.is(evaluate('typeof localProp'), 'object');
+  t.is(evaluate('typeof eventuallyAssignedLocalProp'), 'undefined');
+  t.is(evaluate('typeof missingRealmGlobalProp'), 'undefined');
+  t.is(evaluate('typeof eventuallyAssignedRealmGlobalProp'), 'undefined');
+
+  t.is(evaluate('localProp'), globalObject.localProp);
+  t.throws(() => evaluate('eventuallyAssignedLocalProp'), {
+    instanceOf: ReferenceError,
+  });
+  t.throws(() => evaluate('missingRealmGlobalProp'), {
+    instanceOf: ReferenceError,
+  });
+  t.throws(() => evaluate('eventuallyAssignedRealmGlobalProp'), {
+    instanceOf: ReferenceError,
+  });
+
+  globalThis.eventuallyAssignedRealmGlobalProp = {};
+  t.teardown(() => {
+    delete globalThis.eventuallyAssignedRealmGlobalProp;
+  });
+
+  t.is(evaluate('typeof localProp'), 'object');
+  t.is(evaluate('typeof eventuallyAssignedLocalProp'), 'undefined');
+  t.is(evaluate('typeof missingRealmGlobalProp'), 'undefined');
+  t.is(evaluate('typeof eventuallyAssignedRealmGlobalProp'), 'undefined');
+
+  t.is(evaluate('localProp'), globalObject.localProp);
+  t.throws(() => evaluate('eventuallyAssignedLocalProp'), {
+    instanceOf: ReferenceError,
+  });
+  t.throws(() => evaluate('missingRealmGlobalProp'), {
+    instanceOf: ReferenceError,
+  });
+  // Known compromise in fidelity of the emulated script environment:
+  t.is(evaluate('eventuallyAssignedRealmGlobalProp'), undefined);
+
+  evaluate(
+    'this[Symbol.unscopables] = { eventuallyAssignedRealmGlobalProp: true, localProp: true, eventuallyAssignedLocalProp: true }',
+  );
+  // after property is created on globalObject, assignment is evaluated to
+  // test if it is affected by the Symbol.unscopables configuration
+  globalObject.eventuallyAssignedLocalProp = null;
+  evaluate('eventuallyAssignedLocalProp = {}');
+
+  t.is(evaluate('typeof localProp'), 'object');
+  t.is(evaluate('typeof eventuallyAssignedLocalProp'), 'object');
+  t.is(evaluate('typeof missingRealmGlobalProp'), 'undefined');
+  t.is(evaluate('typeof eventuallyAssignedRealmGlobalProp'), 'undefined');
+
+  t.is(evaluate('localProp'), globalObject.localProp);
+  t.is(
+    evaluate('eventuallyAssignedLocalProp'),
+    globalObject.eventuallyAssignedLocalProp,
+  );
+  t.throws(() => evaluate('missingRealmGlobalProp'), {
+    instanceOf: ReferenceError,
+  });
+  // Known compromise in fidelity of the emulated script environment:
+  t.is(evaluate('eventuallyAssignedRealmGlobalProp'), undefined);
+
+  // move "Symbol.unscopables" to prototype
+  delete globalObject[Symbol.unscopables];
+  const globalObjectProto = Reflect.getPrototypeOf(globalObject);
+  globalObjectProto[Symbol.unscopables] = {
+    eventuallyAssignedRealmGlobalProp: true,
+    localProp: true,
+    eventuallyAssignedLocalProp: true,
+  };
+
+  t.is(evaluate('typeof localProp'), 'object');
+  t.is(evaluate('typeof eventuallyAssignedLocalProp'), 'object');
+  t.is(evaluate('typeof missingRealmGlobalProp'), 'undefined');
+  t.is(evaluate('typeof eventuallyAssignedRealmGlobalProp'), 'undefined');
+
+  t.is(evaluate('localProp'), globalObject.localProp);
+  t.is(
+    evaluate('eventuallyAssignedLocalProp'),
+    globalObject.eventuallyAssignedLocalProp,
+  );
+  t.throws(() => evaluate('missingRealmGlobalProp'), {
+    instanceOf: ReferenceError,
+  });
+  // Known compromise in fidelity of the emulated script environment:
+  t.is(evaluate('eventuallyAssignedRealmGlobalProp'), undefined);
 });

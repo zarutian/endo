@@ -374,7 +374,6 @@ test('scope behavior - Symbol.unscopables fidelity test', t => {
   );
   // after property is created on globalObject, assignment is evaluated to
   // test if it is affected by the Symbol.unscopables configuration
-  // Known compromise in fidelity of the emulated script environment:
   globalObject.eventuallyAssignedLocalProp = null;
   // Known compromise in fidelity of the emulated script environment:
   t.throws(() => evaluate('eventuallyAssignedLocalProp = {}'), {

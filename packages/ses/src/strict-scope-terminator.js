@@ -6,7 +6,6 @@ import {
   create,
   freeze,
   getOwnPropertyDescriptors,
-  globalThis,
   immutableObject,
 } from './commons.js';
 import { assert } from './error/assert.js';
@@ -50,9 +49,9 @@ const scopeProxyHandlerProperties = {
     throw new ReferenceError(`${String(prop)} is not defined`);
   },
 
-  has(_shadow, prop) {
+  has(_shadow, _prop) {
     // we must at least return true for all properties on the realm globalThis
-    return prop in globalThis;
+    return true;
   },
 
   // note: this is likely a bug of safari

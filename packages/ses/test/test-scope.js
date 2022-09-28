@@ -325,6 +325,7 @@ test('scope behavior - Symbol.unscopables fidelity test', t => {
     globalObject,
   });
 
+  // Known compromise in fidelity of the emulated script environment:
   t.is(evaluate('typeof localProp'), 'undefined');
   t.is(evaluate('typeof eventuallyAssignedLocalProp'), 'undefined');
   t.is(evaluate('typeof missingRealmGlobalProp'), 'undefined');
@@ -375,6 +376,7 @@ test('scope behavior - Symbol.unscopables fidelity test', t => {
   // test if it is affected by the Symbol.unscopables configuration
   // Known compromise in fidelity of the emulated script environment:
   globalObject.eventuallyAssignedLocalProp = null;
+  // Known compromise in fidelity of the emulated script environment:
   t.throws(() => evaluate('eventuallyAssignedLocalProp = {}'), {
     instanceOf: ReferenceError,
   });

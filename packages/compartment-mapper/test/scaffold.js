@@ -56,6 +56,8 @@ export function scaffold(
   {
     onError,
     shouldFailBeforeArchiveOperations = false,
+    addGlobals = {},
+    policy,
     knownFailure = false,
     tags = undefined,
   } = {},
@@ -78,7 +80,8 @@ export function scaffold(
       }
       return assertFixture(t, {
         namespace,
-        globals,
+        globals: { ...globals, ...addGlobals },
+        policy,
         testCategoryHint,
       });
     });
@@ -90,10 +93,11 @@ export function scaffold(
 
     const application = await loadLocation(readPowers, fixture, {
       dev: true,
+      policy,
       tags,
     });
     const { namespace } = await application.import({
-      globals,
+      globals: { ...globals, ...addGlobals },
       modules,
       Compartment,
     });
@@ -105,7 +109,8 @@ export function scaffold(
     await setup();
 
     const { namespace } = await importLocation(readPowers, fixture, {
-      globals,
+      globals: { ...globals, ...addGlobals },
+      policy,
       modules,
       Compartment,
       dev: true,
@@ -121,6 +126,7 @@ export function scaffold(
     const archive = await makeArchive(readPowers, fixture, {
       modules,
       dev: true,
+      policy,
       tags,
     });
     const application = await parseArchive(archive, '<unknown>', {
@@ -135,7 +141,7 @@ export function scaffold(
       Compartment,
     });
     const { namespace } = await application.import({
-      globals,
+      globals: { ...globals, ...addGlobals },
       modules,
       Compartment,
     });
@@ -152,6 +158,7 @@ export function scaffold(
       const archive = await makeArchive(readPowers, fixture, {
         modules,
         dev: true,
+        policy,
         tags,
       });
       const prefixArchive = new Uint8Array(archive.length + 10);
@@ -162,7 +169,7 @@ export function scaffold(
         Compartment,
       });
       const { namespace } = await application.import({
-        globals,
+        globals: { ...globals, ...addGlobals },
         modules,
         Compartment,
       });
@@ -188,6 +195,7 @@ export function scaffold(
     await writeArchive(fakeWrite, readPowers, 'app.agar', fixture, {
       modules: { builtin: true },
       dev: true,
+      policy,
       tags,
     });
     const application = await loadArchive(fakeRead, 'app.agar', {
@@ -195,7 +203,7 @@ export function scaffold(
       Compartment,
     });
     const { namespace } = await application.import({
-      globals,
+      globals: { ...globals, ...addGlobals },
       modules,
       Compartment,
     });
@@ -218,12 +226,13 @@ export function scaffold(
     };
 
     await writeArchive(fakeWrite, readPowers, 'app.agar', fixture, {
+      policy,
       modules,
       dev: true,
       tags,
     });
     const { namespace } = await importArchive(fakeRead, 'app.agar', {
-      globals,
+      globals: { ...globals, ...addGlobals },
       modules,
       Compartment,
     });

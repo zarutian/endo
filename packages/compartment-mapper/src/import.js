@@ -41,6 +41,7 @@ export const loadLocation = async (readPowers, moduleLocation, options) => {
     moduleTransforms = {},
     dev = false,
     tags = new Set(),
+    policy,
   } = options || {};
 
   const { read } = unpackReadPowers(readPowers);
@@ -62,13 +63,19 @@ export const loadLocation = async (readPowers, moduleLocation, options) => {
     tags,
     packageDescriptor,
     moduleSpecifier,
-    { dev },
+    { dev, policy },
   );
 
   /** @type {ExecuteFn} */
   const execute = async (options = {}) => {
-    const { globals, modules, transforms, __shimTransforms__, Compartment } =
-      options;
+    const {
+      globals,
+      modules,
+      transforms,
+      attenuations,
+      __shimTransforms__,
+      Compartment,
+    } = options;
     const makeImportHook = makeImportHookMaker(
       readPowers,
       packageLocation,
@@ -80,6 +87,7 @@ export const loadLocation = async (readPowers, moduleLocation, options) => {
       parserForLanguage,
       globals,
       modules,
+      attenuations,
       transforms,
       moduleTransforms,
       __shimTransforms__,

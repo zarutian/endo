@@ -76,7 +76,7 @@ const DASH = '-'.charCodeAt(0);
  * @param {string} encodedStr
  * @returns {boolean}
  */
-const startsSpecial = encodedStr => {
+export const startsSpecial = encodedStr => {
   if (encodedStr === '') {
     return false;
   }

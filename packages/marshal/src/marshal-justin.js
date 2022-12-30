@@ -112,9 +112,9 @@ const makeNoIndenter = () => {
   });
 };
 
-const identPattern = /^[a-zA-Z]\w*$/;
+export const identPattern = /^[a-zA-Z]\w*$/;
 harden(identPattern);
-const AtAtPrefixPattern = /^@@(.*)$/;
+export const AtAtPrefixPattern = /^@@(.*)$/;
 harden(AtAtPrefixPattern);
 
 /**

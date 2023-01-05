@@ -72,7 +72,6 @@ export const loadLocation = async (readPowers, moduleLocation, options) => {
       globals,
       modules,
       transforms,
-      attenuations,
       __shimTransforms__,
       Compartment,
     } = options;
@@ -87,17 +86,93 @@ export const loadLocation = async (readPowers, moduleLocation, options) => {
       parserForLanguage,
       globals,
       modules,
-      attenuations,
+      attenuators: Object.fromEntries(
+        Object.entries(policy.attenuators).map(([k, v]) => [
+          k,
+          () => compartment.import(v),
+        ]),
+      ),
       transforms,
       moduleTransforms,
       __shimTransforms__,
       Compartment,
     });
+
+    console.error('================= import:');
     return compartment.import(moduleSpecifier);
   };
 
   return { import: execute };
 };
+
+// Would this be useful?
+// /**
+//  * @param {ReadFn | ReadPowers} readPowers
+//  * @param {Array<string>} specifiers
+//  * @param {ArchiveOptions} [options]
+//  * @returns {Promise<any>}
+//  */
+// export const loadBunch = async (readPowers, specifiers, options) => {
+//   const packageLocation = '.';
+//   const {
+//     moduleTransforms = {},
+//     dev = false,
+//     tags = new Set(),
+//     policy,
+//   } = options || {};
+
+//   // const {
+//   //   packageLocation,
+//   //   packageDescriptorText,
+//   //   packageDescriptorLocation,
+//   //   moduleSpecifier,
+//   // } = await search(read, moduleLocation);
+
+//   const packageDescriptor = {
+//     name: '*root*',
+//     dependencies: Object.fromEntries(specifiers.map(s => [s, '*'])),
+//   };
+//   const compartmentMap = await compartmentMapForNodeModules(
+//     readPowers,
+//     packageLocation,
+//     tags,
+//     packageDescriptor,
+//     '*root*',
+//     { dev, policy },
+//   );
+
+//   /** @type {ExecuteFn} */
+//   const assemble = async (options = {}) => {
+//     const {
+//       globals,
+//       modules,
+//       transforms,
+//       attenuations,
+//       __shimTransforms__,
+//       Compartment,
+//     } = options;
+//     const makeImportHook = makeImportHookMaker(
+//       readPowers,
+//       packageLocation,
+//       undefined,
+//       compartmentMap.compartments,
+//     );
+//     const { compartment } = link(compartmentMap, {
+//       makeImportHook,
+//       parserForLanguage,
+//       globals,
+//       modules,
+//       attenuations,
+//       transforms,
+//       moduleTransforms,
+//       __shimTransforms__,
+//       Compartment,
+//     });
+//     return compartment;
+//   };
+
+//   return { assemble };
+// };
 
 /**
  * @param {ReadFn | ReadPowers} readPowers

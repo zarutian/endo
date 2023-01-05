@@ -744,7 +744,7 @@ export const compartmentMapForNodeModules = async (
     canonical,
     packageLocation,
     tags,
-    packageDescriptor,
+    packageDescriptor, // attenuators are likely to already be here if they're dependencies of the project.
     dev,
   );
 

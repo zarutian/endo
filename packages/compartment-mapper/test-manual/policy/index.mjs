@@ -1,7 +1,10 @@
 /* eslint-disable import/first */
 import 'ses';
 
-lockdown();
+lockdown({
+  errorTaming: 'unsafe',
+  stackFiltering: 'verbose',
+});
 
 import fs from 'fs';
 import os from 'os';
@@ -22,15 +25,27 @@ const ApiSubsetOfBuffer = harden({ from: Buffer.from });
 
 const { namespace } = await importLocation(readPower, entrypointPath, {
   policy: {
+    attenuators: {
+      // 'fs-read-attenuation': 'a module specifier that exports const `attenuate`'
+      // 'fs-read-attenuation': './attenuator.mjs',
+      'fs-read-attenuation': 'att1',
+    },
     resources: {
+      att1: { // this is nice
+        globals: {
+          console: true,
+        },
+      },
       'endo-sample': {
         globals: {
           // 'Buffer.from': true, // "write"
           Buffer: true,
+          console: true,
         },
         packages: {
           entropoetry: true,
           dotenv: true,
+          att1: true, // LOL
         },
         builtin: {
           fs: {
@@ -90,17 +105,6 @@ const { namespace } = await importLocation(readPower, entrypointPath, {
     zlib: await addToCompartment('zlib', zlib),
     fs: await addToCompartment('fs', fs),
     os: await addToCompartment('os', os),
-  },
-  attenuations: {
-    'fs-read-attenuation': (params, originalModuleNamespace) => {
-      console.log('>>>fs-read-attenuation', params);
-      // Object.assign(exportsProxy, originalModuleNamespace);
-      const ns = params.reduce((acc, k) => {
-        acc[k] = originalModuleNamespace[k];
-        return acc;
-      }, {});
-      return ns;
-    },
   },
 });
 

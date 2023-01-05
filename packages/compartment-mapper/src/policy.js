@@ -82,7 +82,7 @@ export const getAllowedGlobals = (globals, localPolicy) => {
 export const gatekeepModuleAccess = (specifier, policy, info) => {
   const policyChoice = info.exit ? 'builtin' : 'packages';
   if (policy && (!policy[policyChoice] || !policy[policyChoice][specifier])) {
-    console.trace(specifier);
+    // console.trace(specifier);
     throw Error(
       `Importing '${specifier}' was not allowed by policy ${policyChoice}:${JSON.stringify(
         policy[policyChoice],
@@ -104,7 +104,10 @@ function attenuateModule({ attenuators, name, params, originalModule }) {
       name,
       resolveHook: moduleSpecifier => moduleSpecifier,
       importHook: async () => {
-        const ns = await attenuators[name](params, originalModule);
+        const {
+          namespace: { attenuate },
+        } = await attenuators[name]();
+        const ns = await attenuate(params, originalModule);
         const staticModuleRecord = freeze({
           imports: [],
           exports: keys(ns),
@@ -125,13 +128,13 @@ function attenuateModule({ attenuators, name, params, originalModule }) {
  * @param {string} specifier - exit module name
  * @param {Object} originalModule - reference to the exit module
  * @param {Object} policy - local compartment policy
- * @param {Object} attenuationsImpl - a key-value where attenuations can be found
+ * @param {Object} attenuators - a key-value where attenuations can be found
  */
 export const attenuateModuleHook = (
   specifier,
   originalModule,
   policy,
-  attenuationsImpl,
+  attenuators,
 ) => {
   if (policy && (!policy.builtin || !policy.builtin[specifier])) {
     console.trace(specifier);
@@ -145,8 +148,9 @@ export const attenuateModuleHook = (
     return originalModule;
   }
 
+  console.error('>>> attenuate hook');
   return attenuateModule({
-    attenuators: attenuationsImpl,
+    attenuators,
     name: policy.builtin[specifier].attenuate,
     params: policy.builtin[specifier].params,
     originalModule,

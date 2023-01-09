@@ -18,6 +18,8 @@ import {
   getAllowedGlobals,
   gatekeepModuleAccess,
   attenuateModuleHook,
+  ATTENUATORS_COMPARTMENT,
+  getPolicyFor,
 } from './policy.js';
 
 const { entries, fromEntries, freeze } = Object;
@@ -369,7 +371,7 @@ export const link = (
     moduleTransforms = {},
     __shimTransforms__ = [],
     modules: exitModules = {},
-    attenuators,
+    policy,
     archiveOnly = false,
     Compartment = defaultCompartment,
   },
@@ -378,11 +380,38 @@ export const link = (
 
   /** @type {Record<string, Compartment>} */
   const compartments = Object.create(null);
+
+  // TODO: handle if no policy
+  const attenuators = Object.fromEntries(
+    Object.entries(policy.attenuators).map(([k, v]) => [
+      k,
+      () => compartments[ATTENUATORS_COMPARTMENT].import(v),
+    ]),
+  );
+
+const attenuatorsCompartmentDescriptorEntry = [ATTENUATORS_COMPARTMENT, {
+  ...compartmentDescriptors[entryCompartmentName], 
+  label: 'ATTENUATORS_COMPARTMENT',
+  name: 'ATTENUATORS_COMPARTMENT',
+  path: [],
+  policy: getPolicyFor('*ATTENUATORS*', policy)
+
+}]
+
+  // graph[ATTENUATORS_COMPARTMENT] = {
+  //   ...graph[packageLocation],
+  //   externalAliases: {},
+  //   label: 'ATTENUATORS_COMPARTMENT',
+  //   name: 'ATTENUATORS_COMPARTMENT',
+  // };
+
+  console.log('--------------------------')
   /** @type {Record<string, ResolveHook>} */
   const resolvers = Object.create(null);
   for (const [compartmentName, compartmentDescriptor] of entries(
     compartmentDescriptors,
-  )) {
+  ).concat([attenuatorsCompartmentDescriptorEntry])) {
+    console.log({compartmentName, compartmentDescriptor})
     const {
       location,
       name,

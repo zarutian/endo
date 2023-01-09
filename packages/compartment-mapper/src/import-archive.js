@@ -205,6 +205,7 @@ export const parseArchive = async (
     computeSourceLocation = undefined,
     Compartment = DefaultCompartment,
     modules = undefined,
+    policy = undefined,
   } = options;
 
   const archive = new ZipReader(archiveBytes, { name: archiveLocation });
@@ -303,6 +304,7 @@ export const parseArchive = async (
       parserForLanguage,
       globals,
       modules,
+      policy,
       transforms,
       __shimTransforms__,
       Compartment,

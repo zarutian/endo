@@ -12,7 +12,7 @@ import assert from 'assert';
 import zlib from 'zlib';
 import path from 'path';
 
-import { importLocation } from '../../index.js';
+import { importLocation, makeArchive, parseArchive } from '../../index.js';
 
 import { addToCompartment } from './helper.mjs';
 
@@ -23,15 +23,25 @@ const entrypointPath = new URL('./app.js', import.meta.url).href;
 
 const ApiSubsetOfBuffer = harden({ from: Buffer.from });
 
-const { namespace } = await importLocation(readPower, entrypointPath, {
+const options = {
   policy: {
     attenuators: {
-      // 'fs-read-attenuation': 'a module specifier that exports const `attenuate`'
-      // 'fs-read-attenuation': './attenuator.mjs',
-      'fs-read-attenuation': 'att1',
+      // 'name: 'a module specifier that exports const `attenuate`'
+      'fs-att1': 'att1',
+      'fs-att2': './attenuator.mjs',
     },
     resources: {
-      att1: { // this is nice
+      '*ATTENUATORS*': {
+        globals: {
+          // necessary for attenuators in local modules like ./attenuator.mjs
+          console: true,
+        },
+        packages: {
+          att1: true,
+        },
+      },
+      att1: {
+        // this is nice
         globals: {
           console: true,
         },
@@ -40,26 +50,22 @@ const { namespace } = await importLocation(readPower, entrypointPath, {
         globals: {
           // 'Buffer.from': true, // "write"
           Buffer: true,
-          console: true,
         },
         packages: {
           entropoetry: true,
           dotenv: true,
-          att1: true, // LOL
         },
         builtin: {
           fs: {
-            attenuate: 'fs-read-attenuation',
+            attenuate: 'fs-att1',
             params: ['existsSync'],
           },
         },
       },
       dotenv: {
         builtin: {
-          // "fs.readFileSync": true,
-          // "fs": "fs-read-attenuation",
           fs: {
-            attenuate: 'fs-read-attenuation',
+            attenuate: 'fs-att2',
             params: ['readFileSync'],
           },
           os: true,
@@ -106,6 +112,34 @@ const { namespace } = await importLocation(readPower, entrypointPath, {
     fs: await addToCompartment('fs', fs),
     os: await addToCompartment('os', os),
   },
-});
+};
 
-console.log(namespace.poem);
+console.log('\n\n________________________________________________ Location\n');
+{
+  const { namespace } = await importLocation(
+    readPower,
+    entrypointPath,
+    options,
+  );
+  console.log(1, namespace.poem);
+}
+
+console.log('\n\n________________________________________________ Archive\n');
+{
+  const archive = await makeArchive(readPower, entrypointPath, {
+    modules: options.modules,
+    policy: options.policy,
+  });
+  console.log('>----------makeArchive');
+  const application = await parseArchive(archive, '<unknown>', {
+    modules: options.modules,
+    policy: options.policy,
+  });
+  console.log('>----------parseArchive');
+  const { namespace } = await application.import({
+    globals: options.globals,
+    modules: options.modules,
+  });
+  console.log('>----------import');
+  console.log(2, namespace.poem);
+}

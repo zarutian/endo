@@ -750,8 +750,6 @@ export const compartmentMapForNodeModules = async (
 
   trace(graph, packageLocation, []);
 
-  // console.log(graph)
-
   const compartmentMap = translateGraph(
     packageLocation,
     moduleSpecifier,

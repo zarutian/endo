@@ -47,6 +47,9 @@ export const getPolicyFor = (id, policy) => {
     return {};
   }
 };
+
+export const ATTENUATORS_COMPARTMENT = Symbol('attenuators-compartment')
+
 const getGlobalsList = myPolicy => {
   if (!myPolicy.globals) {
     return [];

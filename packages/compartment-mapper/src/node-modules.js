@@ -41,7 +41,7 @@ import { searchDescriptor } from './search.js';
 import { parseLocatedJson } from './json.js';
 import { unpackReadPowers } from './powers.js';
 import { pathCompare } from './compartment-map.js';
-import { getPolicyFor } from './policy.js';
+import { getPolicyFor, ATTENUATORS_COMPARTMENT } from './policy.js';
 import { join } from './node-module-specifier.js';
 
 const { assign, create, keys, values } = Object;
@@ -747,6 +747,17 @@ export const compartmentMapForNodeModules = async (
     packageDescriptor, // attenuators are likely to already be here if they're dependencies of the project.
     dev,
   );
+
+  if (policy) {
+    // Instead of worrying if '<ATTENUATORS_COMPARTMENT>' is unique enough, we're overwriting whatever tried to use it anyway
+    // the attenuators compartment is where attenuators get loaded
+    graph[ATTENUATORS_COMPARTMENT] = {
+      ...graph[packageLocation],
+      externalAliases: {},
+      label: ATTENUATORS_COMPARTMENT,
+      name: ATTENUATORS_COMPARTMENT,
+    };
+  }
 
   trace(graph, packageLocation, []);
 

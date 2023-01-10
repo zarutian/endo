@@ -52,7 +52,7 @@ const parserForLanguage = {
  */
 const resolveLocation = (rel, abs) => new URL(rel, abs).toString();
 
-const { keys, entries, fromEntries } = Object;
+const { keys, values, entries, fromEntries } = Object;
 
 /**
  * We attempt to produce compartment maps that are consistent regardless of
@@ -299,7 +299,7 @@ const digestLocation = async (powers, moduleLocation, options) => {
     computeSha512,
   );
   // Induce importHook to record all the necessary modules to import the given module specifier.
-  const { compartment } = link(compartmentMap, {
+  const { compartment, attenuatorsCompartment } = link(compartmentMap, {
     resolve,
     modules: exitModules,
     makeImportHook,
@@ -309,6 +309,14 @@ const digestLocation = async (powers, moduleLocation, options) => {
     policy,
   });
   await compartment.load(entryModuleSpecifier);
+  if (policy && policy.attenuators) {
+    // retain all attenuators
+    await Promise.all(
+      values(policy.attenuators).map(attenuatorSpecifier =>
+        attenuatorsCompartment.load(attenuatorSpecifier),
+      ),
+    );
+  }
 
   const compartmentRenames = renameCompartments(compartments);
   const archiveCompartments = translateCompartmentMap(

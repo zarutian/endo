@@ -26,6 +26,7 @@ const adaptId = id => {
   }
   return chunks.join('>');
 };
+export const ATTENUATORS_COMPARTMENT = '<ATTENUATORS>';
 
 /**
  * Returns the policy applicable to the id - either by taking from user
@@ -39,6 +40,14 @@ export const getPolicyFor = (id, policy) => {
   if (!policy) {
     return undefined;
   }
+  if (id === ATTENUATORS_COMPARTMENT) {
+    return {
+      packages: Object.values(policy.attenuators).reduce((pk, p) => {
+        pk[p] = true;
+        return pk;
+      }, {}),
+    };
+  }
   const shortId = adaptId(id);
   if (policy.resources && policy.resources[shortId]) {
     return policy.resources[shortId];
@@ -47,8 +56,6 @@ export const getPolicyFor = (id, policy) => {
     return {};
   }
 };
-
-export const ATTENUATORS_COMPARTMENT = Symbol('attenuators-compartment')
 
 const getGlobalsList = myPolicy => {
   if (!myPolicy.globals) {
@@ -140,7 +147,6 @@ export const attenuateModuleHook = (
   attenuators,
 ) => {
   if (policy && (!policy.builtin || !policy.builtin[specifier])) {
-    console.trace(specifier);
     throw Error(
       `Attenuation failed '${specifier}' was not in policy builtin:${stringify(
         policy.builtin,
@@ -151,7 +157,6 @@ export const attenuateModuleHook = (
     return originalModule;
   }
 
-  console.error('>>> attenuate hook');
   return attenuateModule({
     attenuators,
     name: policy.builtin[specifier].attenuate,

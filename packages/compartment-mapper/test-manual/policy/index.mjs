@@ -28,18 +28,9 @@ const options = {
     attenuators: {
       // 'name: 'a module specifier that exports const `attenuate`'
       'fs-att1': 'att1',
-      'fs-att2': './attenuator.mjs',
+      // 'fs-att2': './attenuator.mjs', //not supported
     },
     resources: {
-      '*ATTENUATORS*': {
-        globals: {
-          // necessary for attenuators in local modules like ./attenuator.mjs
-          console: true,
-        },
-        packages: {
-          att1: true,
-        },
-      },
       att1: {
         // this is nice
         globals: {
@@ -50,6 +41,7 @@ const options = {
         globals: {
           // 'Buffer.from': true, // "write"
           Buffer: true,
+          console: true,
         },
         packages: {
           entropoetry: true,
@@ -65,7 +57,7 @@ const options = {
       dotenv: {
         builtin: {
           fs: {
-            attenuate: 'fs-att2',
+            attenuate: 'fs-att1',
             params: ['readFileSync'],
           },
           os: true,

@@ -257,9 +257,11 @@ const makeModuleMapHook = (
         }
       }
       if (foreignModuleSpecifier !== undefined) {
-        gatekeepModuleAccess(moduleSpecifier, compartmentDescriptor.policy, {
-          exit: false,
-        });
+        if (!moduleSpecifier.startsWith('./')) { // archive goes through foreignModuleSpecifier for local modules too
+          gatekeepModuleAccess(moduleSpecifier, compartmentDescriptor.policy, {
+            exit: false,
+          });
+        }
 
         const foreignCompartment = compartments[foreignCompartmentName];
         if (foreignCompartment === undefined) {
@@ -381,37 +383,21 @@ export const link = (
   /** @type {Record<string, Compartment>} */
   const compartments = Object.create(null);
 
-  // TODO: handle if no policy
-  const attenuators = Object.fromEntries(
-    Object.entries(policy.attenuators).map(([k, v]) => [
-      k,
-      () => compartments[ATTENUATORS_COMPARTMENT].import(v),
-    ]),
-  );
+  const attenuators =
+    policy && policy.attenuators
+      ? Object.fromEntries(
+          Object.entries(policy.attenuators).map(([k, v]) => [
+            k,
+            () => compartments[ATTENUATORS_COMPARTMENT].import(v),
+          ]),
+        )
+      : {};
 
-const attenuatorsCompartmentDescriptorEntry = [ATTENUATORS_COMPARTMENT, {
-  ...compartmentDescriptors[entryCompartmentName], 
-  label: 'ATTENUATORS_COMPARTMENT',
-  name: 'ATTENUATORS_COMPARTMENT',
-  path: [],
-  policy: getPolicyFor('*ATTENUATORS*', policy)
-
-}]
-
-  // graph[ATTENUATORS_COMPARTMENT] = {
-  //   ...graph[packageLocation],
-  //   externalAliases: {},
-  //   label: 'ATTENUATORS_COMPARTMENT',
-  //   name: 'ATTENUATORS_COMPARTMENT',
-  // };
-
-  console.log('--------------------------')
   /** @type {Record<string, ResolveHook>} */
   const resolvers = Object.create(null);
   for (const [compartmentName, compartmentDescriptor] of entries(
     compartmentDescriptors,
-  ).concat([attenuatorsCompartmentDescriptorEntry])) {
-    console.log({compartmentName, compartmentDescriptor})
+  )) {
     const {
       location,
       name,
@@ -492,11 +478,13 @@ const attenuatorsCompartmentDescriptorEntry = [ATTENUATORS_COMPARTMENT, {
       )} is missing from the compartment map`,
     );
   }
+  const attenuatorsCompartment = compartments[ATTENUATORS_COMPARTMENT];
 
   return {
     compartment,
     compartments,
     resolvers,
+    attenuatorsCompartment,
   };
 };
 

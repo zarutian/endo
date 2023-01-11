@@ -28,7 +28,7 @@ const options = {
     attenuators: {
       // 'name: 'a module specifier that exports const `attenuate`'
       'fs-att1': 'att1',
-      // 'fs-att2': './attenuator.mjs', //not supported
+      'fs-att2': './attenuator.mjs',
     },
     resources: {
       att1: {
@@ -49,7 +49,7 @@ const options = {
         },
         builtin: {
           fs: {
-            attenuate: 'fs-att1',
+            attenuate: 'fs-att2',
             params: ['existsSync'],
           },
         },
@@ -106,15 +106,15 @@ const options = {
   },
 };
 
-console.log('\n\n________________________________________________ Location\n');
-{
-  const { namespace } = await importLocation(
-    readPower,
-    entrypointPath,
-    options,
-  );
-  console.log(1, namespace.poem);
-}
+// console.log('\n\n________________________________________________ Location\n');
+// {
+//   const { namespace } = await importLocation(
+//     readPower,
+//     entrypointPath,
+//     options,
+//   );
+//   console.log(1, namespace.poem);
+// }
 
 console.log('\n\n________________________________________________ Archive\n');
 {

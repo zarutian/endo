@@ -26,6 +26,7 @@ import { parseLocatedJson } from './json.js';
 import { unpackReadPowers } from './powers.js';
 import { join } from './node-module-specifier.js';
 import { assertCompartmentMap } from './compartment-map.js';
+import { getDeferredAttenuators } from './policy-attenuators.js';
 
 const DefaultCompartment = Compartment;
 
@@ -205,7 +206,7 @@ export const parseArchive = async (
     computeSourceLocation = undefined,
     Compartment = DefaultCompartment,
     modules = undefined,
-    policy = undefined,
+    policy = undefined, // this shouldn't be here
   } = options;
 
   const archive = new ZipReader(archiveBytes, { name: archiveLocation });
@@ -304,7 +305,7 @@ export const parseArchive = async (
       parserForLanguage,
       globals,
       modules,
-      policy,
+      attenuators: getDeferredAttenuators({ policy, attenuatorsCompartment }),// TODO: get attenuators from archive. but HOW?
       transforms,
       __shimTransforms__,
       Compartment,

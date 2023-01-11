@@ -31,6 +31,7 @@ import {
   stringCompare,
   pathCompare,
 } from './compartment-map.js';
+import { getDeferredAttenuators, linkAttenuators } from './policy-attenuators.js';
 
 const textEncoder = new TextEncoder();
 
@@ -85,7 +86,7 @@ const { keys, values, entries, fromEntries } = Object;
  * @param {Record<string, CompartmentDescriptor>} compartments
  * @returns {Record<string, string>} map from old to new compartment names.
  */
-const renameCompartments = compartments => {
+const renameCompartments = (compartments, prefix = '') => {
   /** @type {Record<string, string>} */
   const compartmentRenames = Object.create(null);
   let index = 0;
@@ -111,10 +112,10 @@ const renameCompartments = compartments => {
 
   for (const { name, label } of compartmentsByPath) {
     if (label === prev) {
-      compartmentRenames[name] = `${label}-n${index}`;
+      compartmentRenames[name] = `${prefix}${label}-n${index}`;
       index += 1;
     } else {
-      compartmentRenames[name] = label;
+      compartmentRenames[name] = prefix + label;
       prev = label;
       index = 1;
     }
@@ -242,6 +243,55 @@ const captureSourceLocations = async (sources, captureSourceLocation) => {
   }
 };
 
+const digestAttenuators = async (
+  powers,
+  {
+    packageLocation,
+    tags,
+    packageDescriptor,
+    dev,
+    exitModules,
+    moduleTransforms,
+    policy,
+  },
+) => {
+  const { read, computeSha512 } = unpackReadPowers(powers);
+
+  const attCompartmentMap = await compartmentMapForNodeModules(
+    powers,
+    packageLocation,
+    tags,
+    { name: 'ATTENUATORS', dependencies: packageDescriptor.dependencies }, //TODO: filter dependencies to only contain attenuators?
+    null,
+    { dev, policy: undefined }, // future policy for attenuators might go here
+  );
+  /** @type {Sources} */
+  const sources = Object.create(null);
+
+  const {
+    compartments,
+    // entry: { compartment: entryCompartmentName },
+  } = attCompartmentMap;
+
+  const makeImportHook = makeImportHookMaker(
+    read,
+    packageLocation,
+    sources,
+    compartments,
+    exitModules,
+    computeSha512,
+  );
+  const { compartment } = link(attCompartmentMap, {
+    resolve,
+    modules: exitModules,
+    makeImportHook,
+    moduleTransforms,
+    parserForLanguage,
+    archiveOnly: true,
+    // policy, // future policy for attenuators might go here
+  });
+};
+
 /**
  * @param {ReadFn | ReadPowers} powers
  * @param {string} moduleLocation
@@ -273,6 +323,41 @@ const digestLocation = async (powers, moduleLocation, options) => {
     packageDescriptorText,
     packageDescriptorLocation,
   );
+
+  let attenuatorsCompartments;
+  let attenuatorsSources;
+  let attenuatorsCompartment;
+  if (policy) {
+    const { compartment, compartments, sources } = await linkAttenuators({
+      powers,
+      parserForLanguage,
+      packageLocation,
+      tags,
+      packageDescriptor,
+      dev,
+      exitModules,
+      moduleTransforms,
+      archiveOnly: true,
+      policy,
+    });
+
+    await Promise.all(
+      values(policy.attenuators).map(attenuatorSpecifier =>
+        compartment.load(attenuatorSpecifier),
+      ),
+    );
+
+    const compartmentRenames = renameCompartments(compartments, 'ATTENUATORS_');
+    // compartmentRenames[entryCompartmentName] = '<ATTENUATORS>';
+    attenuatorsCompartments = translateCompartmentMap(
+      compartments,
+      sources,
+      compartmentRenames,
+    );
+    attenuatorsSources = renameSources(sources, compartmentRenames);
+    attenuatorsCompartment = compartment;
+  }
+
   const compartmentMap = await compartmentMapForNodeModules(
     powers,
     packageLocation,
@@ -299,24 +384,16 @@ const digestLocation = async (powers, moduleLocation, options) => {
     computeSha512,
   );
   // Induce importHook to record all the necessary modules to import the given module specifier.
-  const { compartment, attenuatorsCompartment } = link(compartmentMap, {
+  const { compartment } = link(compartmentMap, {
     resolve,
     modules: exitModules,
     makeImportHook,
     moduleTransforms,
     parserForLanguage,
     archiveOnly: true,
-    policy,
+    attenuators: getDeferredAttenuators({ policy, attenuatorsCompartment }),
   });
   await compartment.load(entryModuleSpecifier);
-  if (policy && policy.attenuators) {
-    // retain all attenuators
-    await Promise.all(
-      values(policy.attenuators).map(attenuatorSpecifier =>
-        attenuatorsCompartment.load(attenuatorSpecifier),
-      ),
-    );
-  }
 
   const compartmentRenames = renameCompartments(compartments);
   const archiveCompartments = translateCompartmentMap(
@@ -324,8 +401,10 @@ const digestLocation = async (powers, moduleLocation, options) => {
     sources,
     compartmentRenames,
   );
+  Object.assign(archiveCompartments, attenuatorsCompartments);
   const archiveEntryCompartmentName = compartmentRenames[entryCompartmentName];
   const archiveSources = renameSources(sources, compartmentRenames);
+  Object.assign(archiveSources, attenuatorsSources);
 
   const archiveCompartmentMap = {
     entry: {

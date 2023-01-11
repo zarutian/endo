@@ -20,6 +20,7 @@ import parserCjs from './parse-cjs.js';
 import parserMjs from './parse-mjs.js';
 import { parseLocatedJson } from './json.js';
 import { unpackReadPowers } from './powers.js';
+import { getDeferredAttenuators, linkAttenuators } from './policy-attenuators.js';
 
 /** @type {Record<string, ParserImplementation>} */
 export const parserForLanguage = {
@@ -57,6 +58,7 @@ export const loadLocation = async (readPowers, moduleLocation, options) => {
     packageDescriptorText,
     packageDescriptorLocation,
   );
+
   const compartmentMap = await compartmentMapForNodeModules(
     readPowers,
     packageLocation,
@@ -68,13 +70,22 @@ export const loadLocation = async (readPowers, moduleLocation, options) => {
 
   /** @type {ExecuteFn} */
   const execute = async (options = {}) => {
-    const {
-      globals,
-      modules,
-      transforms,
-      __shimTransforms__,
+    const { globals, modules, transforms, __shimTransforms__, Compartment } =
+      options;
+
+    const { compartment: attenuatorsCompartment } = await linkAttenuators({
+      powers: readPowers,
+      parserForLanguage,
+      packageLocation,
+      packageDescriptor,
+      archiveOnly: true,
+      tags,
+      dev,
+      exitModules: modules,
+      moduleTransforms,
       Compartment,
-    } = options;
+      policy,
+    });
     const makeImportHook = makeImportHookMaker(
       readPowers,
       packageLocation,
@@ -86,7 +97,7 @@ export const loadLocation = async (readPowers, moduleLocation, options) => {
       parserForLanguage,
       globals,
       modules,
-      policy,
+      attenuators: getDeferredAttenuators({ policy, attenuatorsCompartment }),
       transforms,
       moduleTransforms,
       __shimTransforms__,

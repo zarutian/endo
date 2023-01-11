@@ -748,16 +748,16 @@ export const compartmentMapForNodeModules = async (
     dev,
   );
 
-  if (policy) {
-    // Instead of worrying if '<ATTENUATORS_COMPARTMENT>' is unique enough, we're overwriting whatever tried to use it anyway
-    // the attenuators compartment is where attenuators get loaded
-    graph[ATTENUATORS_COMPARTMENT] = {
-      ...graph[packageLocation],
-      externalAliases: {},
-      label: ATTENUATORS_COMPARTMENT,
-      name: ATTENUATORS_COMPARTMENT,
-    };
-  }
+  // if (policy) {
+  //   // Instead of worrying if '<ATTENUATORS_COMPARTMENT>' is unique enough, we're overwriting whatever tried to use it anyway
+  //   // the attenuators compartment is where attenuators get loaded
+  //   graph[ATTENUATORS_COMPARTMENT] = {
+  //     ...graph[packageLocation],
+  //     externalAliases: {},
+  //     label: ATTENUATORS_COMPARTMENT,
+  //     name: ATTENUATORS_COMPARTMENT,
+  //   };
+  // }
 
   trace(graph, packageLocation, []);
 

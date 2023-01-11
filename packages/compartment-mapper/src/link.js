@@ -199,7 +199,7 @@ const trimModuleSpecifierPrefix = (moduleSpecifier, prefix) => {
  * @param {Record<string, ModuleDescriptor>} moduleDescriptors
  * @param {Record<string, ModuleDescriptor>} scopeDescriptors
  * @param {Record<string, string>} exitModules
- * @param {Record<string, Object>} attenuators
+ * @param {Record<string, function>} attenuators
  * @param {boolean} archiveOnly
  * @returns {ModuleMapHook | undefined}
  */
@@ -373,7 +373,7 @@ export const link = (
     moduleTransforms = {},
     __shimTransforms__ = [],
     modules: exitModules = {},
-    policy,
+    attenuators,
     archiveOnly = false,
     Compartment = defaultCompartment,
   },
@@ -382,16 +382,6 @@ export const link = (
 
   /** @type {Record<string, Compartment>} */
   const compartments = Object.create(null);
-
-  const attenuators =
-    policy && policy.attenuators
-      ? Object.fromEntries(
-          Object.entries(policy.attenuators).map(([k, v]) => [
-            k,
-            () => compartments[ATTENUATORS_COMPARTMENT].import(v),
-          ]),
-        )
-      : {};
 
   /** @type {Record<string, ResolveHook>} */
   const resolvers = Object.create(null);

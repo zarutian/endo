@@ -27,7 +27,7 @@ const options = {
   policy: {
     attenuators: {
       // 'name: 'a module specifier that exports const `attenuate`'
-      'fs-att1': 'att1',
+      'att1': 'att1',
       // 'fs-att2': './attenuator.mjs', //not supported
     },
     resources: {
@@ -49,7 +49,7 @@ const options = {
         },
         builtin: {
           fs: {
-            attenuate: 'fs-att1',
+            attenuate: 'att1',
             params: ['existsSync'],
           },
         },
@@ -57,7 +57,7 @@ const options = {
       dotenv: {
         builtin: {
           fs: {
-            attenuate: 'fs-att1',
+            attenuate: 'att1',
             params: ['readFileSync'],
           },
           os: true,
@@ -125,7 +125,7 @@ console.log('\n\n________________________________________________ Archive\n');
   console.log('>----------makeArchive');
   const application = await parseArchive(archive, '<unknown>', {
     modules: options.modules,
-    policy: options.policy,
+    // policy: options.policy,
   });
   console.log('>----------parseArchive');
   const { namespace } = await application.import({

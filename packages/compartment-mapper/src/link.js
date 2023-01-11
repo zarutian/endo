@@ -257,7 +257,8 @@ const makeModuleMapHook = (
         }
       }
       if (foreignModuleSpecifier !== undefined) {
-        if (!moduleSpecifier.startsWith('./')) { // archive goes through foreignModuleSpecifier for local modules too
+        if (!moduleSpecifier.startsWith('./')) {
+          // archive goes through foreignModuleSpecifier for local modules too
           gatekeepModuleAccess(moduleSpecifier, compartmentDescriptor.policy, {
             exit: false,
           });
@@ -383,15 +384,7 @@ export const link = (
   /** @type {Record<string, Compartment>} */
   const compartments = Object.create(null);
 
-  const attenuators =
-    policy && policy.attenuators
-      ? Object.fromEntries(
-          Object.entries(policy.attenuators).map(([k, v]) => [
-            k,
-            () => compartments[ATTENUATORS_COMPARTMENT].import(v),
-          ]),
-        )
-      : {};
+  const attenuators = v => compartments[ATTENUATORS_COMPARTMENT].import(v);
 
   /** @type {Record<string, ResolveHook>} */
   const resolvers = Object.create(null);

@@ -102,7 +102,8 @@ export const gatekeepModuleAccess = (specifier, policy, info) => {
 };
 
 function attenuateModule({ attenuators, name, params, originalModule }) {
-  if (!attenuators[name]) {
+  if (!attenuators) {
+    // TODO: figure out what to pass here or where to move this check
     throw Error(
       `Attenuation '${name}' in policy doesn't have a corresponding implementation.`,
     );
@@ -116,7 +117,7 @@ function attenuateModule({ attenuators, name, params, originalModule }) {
       importHook: async () => {
         const {
           namespace: { attenuate },
-        } = await attenuators[name]();
+        } = await attenuators(name);
         const ns = await attenuate(params, originalModule);
         const staticModuleRecord = freeze({
           imports: [],

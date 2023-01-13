@@ -691,7 +691,7 @@ const translateGraph = (
     }
 
     const packagePolicy = getPolicyFor(
-      dependeeLocation === entryPackageLocation ? name : dependeeLocation,
+      dependeeLocation === entryPackageLocation ? '<root>' : dependeeLocation,
       policy,
     );
 

@@ -32,7 +32,7 @@ const options = {
           console: true,
         },
       },
-      'endo-sample': {
+      '<root>': {
         globals: {
           // 'Buffer.from': true, // "write"
           Buffer: true,

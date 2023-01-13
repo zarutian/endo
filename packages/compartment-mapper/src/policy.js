@@ -28,6 +28,21 @@ const adaptId = id => {
 };
 export const ATTENUATORS_COMPARTMENT = '<ATTENUATORS>';
 
+const attenuatorsCache = new WeakMap();
+export const detectAttenuators = policy => {
+  if (!attenuatorsCache.has(policy)) {
+    const attenuators = [];
+    // a free recursive visitor implementation for simple objects
+    stringify(policy, (key, value) => {
+      if (key === 'attenuate' && typeof value === 'string') {
+        attenuators.push(value);
+      }
+      return value;
+    });
+    attenuatorsCache.set(policy, attenuators);
+  }
+  return attenuatorsCache.get(policy);
+};
 /**
  * Returns the policy applicable to the id - either by taking from user
  * supplied policy or returning localPolicy if user didn't specify one at runtime.
@@ -42,9 +57,9 @@ export const getPolicyFor = (id, policy) => {
   }
   if (id === ATTENUATORS_COMPARTMENT) {
     return {
-      packages: Object.values(policy.attenuators).reduce((pk, p) => {
-        pk[p] = true;
-        return pk;
+      packages: detectAttenuators(policy).reduce((packages, specifier) => {
+        packages[specifier] = true;
+        return packages;
       }, {}),
     };
   }

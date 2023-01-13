@@ -25,11 +25,6 @@ const ApiSubsetOfBuffer = harden({ from: Buffer.from });
 
 const options = {
   policy: {
-    attenuators: {
-      // 'name: 'a module specifier that exports const `attenuate`'
-      'att1': 'att1',
-      // 'fs-att2': './attenuator.mjs', //not supported
-    },
     resources: {
       att1: {
         // this is nice
@@ -55,6 +50,9 @@ const options = {
         },
       },
       dotenv: {
+        // transform:{
+        //   ...
+        // }
         builtin: {
           fs: {
             attenuate: 'att1',

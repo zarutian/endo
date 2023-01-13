@@ -31,6 +31,7 @@ import {
   stringCompare,
   pathCompare,
 } from './compartment-map.js';
+import { detectAttenuators } from './policy.js';
 
 const textEncoder = new TextEncoder();
 
@@ -309,10 +310,10 @@ const digestLocation = async (powers, moduleLocation, options) => {
     policy,
   });
   await compartment.load(entryModuleSpecifier);
-  if (policy && policy.attenuators) {
-    // retain all attenuators
+  if (policy) {
+    // retain all attenuators. this is the only reason we still need attenuators field in policy. Can be generated from the rest of policy
     await Promise.all(
-      values(policy.attenuators).map(attenuatorSpecifier =>
+      detectAttenuators(policy).map(attenuatorSpecifier =>
         attenuatorsCompartment.load(attenuatorSpecifier),
       ),
     );

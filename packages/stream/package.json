@@ -38,7 +38,7 @@
     "test": "ava"
   },
   "dependencies": {
-    "@endo/eventual-send": "^0.16.9",
+    "@endo/far": "^0.2.15",
     "@endo/promise-kit": "^0.2.53",
     "ses": "^0.18.1"
   },

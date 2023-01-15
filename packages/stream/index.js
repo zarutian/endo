@@ -11,7 +11,7 @@
 // @ts-check
 /// <reference types="ses"/>
 
-import { E } from '@endo/eventual-send';
+import { E, Far } from '@endo/far';
 import { makePromiseKit } from '@endo/promise-kit';
 
 /**
@@ -34,7 +34,7 @@ const freeze = /** @type {<T>(v: T | Readonly<T>) => T} */ (Object.freeze);
  */
 export const makeQueue = () => {
   let { promise: tailPromise, resolve: tailResolve } = makePromiseKit();
-  return {
+  return Far('AsyncQueue', {
     put(value) {
       const { resolve, promise } = makePromiseKit();
       tailResolve(freeze({ value, promise }));
@@ -66,7 +66,7 @@ export const nullQueue = harden({
  * @param {import('./types.js').AsyncSink<IteratorResult<TWrite, TWriteReturn>>} data
  */
 export const makeStream = (acks, data) => {
-  const stream = harden({
+  const stream = Far('Stream', {
     /**
      * @param {TWrite} value
      */
@@ -169,7 +169,7 @@ export const prime = (generator, primer) => {
   const first = generator.next(primer);
   /** @type {IteratorResult<TRead, TReturn>=} */
   let result;
-  const primed = harden({
+  const primed = Far('Stream', {
     /** @param {TWrite} value */
     async next(value) {
       if (result === undefined) {
@@ -213,13 +213,34 @@ harden(prime);
  * @returns {import('./types.js').Reader<TOut>}
  */
 export const mapReader = (reader, transform) => {
-  async function* transformGenerator() {
-    for await (const value of reader) {
-      yield transform(value);
-    }
-    return undefined;
-  }
-  return harden(transformGenerator());
+  const transformedReader = Far('Stream', {
+    /**
+     * @param {TIn} value
+     */
+    async next(value) {
+      const iteratorResult = await E(reader).next(value);
+      if (iteratorResult.done) {
+        return iteratorResult;
+      }
+      return freeze({ value: transform(iteratorResult.value), done: false });
+    },
+    /**
+     * @param {Error} error
+     */
+    async throw(error) {
+      return reader.throw(error);
+    },
+    /**
+     * @param {undefined} value
+     */
+    async return(value) {
+      return reader.return(value);
+    },
+    [Symbol.asyncIterator]() {
+      return transformedReader;
+    },
+  });
+  return transformedReader;
 };
 harden(mapReader);
 
@@ -231,7 +252,7 @@ harden(mapReader);
  * @returns {import('./types.js').Writer<TIn>}
  */
 export const mapWriter = (writer, transform) => {
-  const transformedWriter = harden({
+  const transformedWriter = Far('Stream', {
     /**
      * @param {TIn} value
      */

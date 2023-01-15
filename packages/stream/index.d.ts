@@ -26,6 +26,36 @@ export declare function makePipe<
   Stream<TWrite, TRead, TWriteReturn, TReadReturn>,
 ];
 
+export declare function makeChangeTopic<
+  TRead,
+  TWrite = undefined,
+  TReadReturn = undefined,
+  TWriteReturn = undefined,
+>(): {
+  publish: () => Stream<void, TWrite, void, TWriteReturn>;
+  subscribe: () => Stream<TRead, unknown, TReadReturn, unknown>;
+};
+
+export declare function makeUpdateTopic<
+  TRead,
+  TWrite = undefined,
+  TReadReturn = undefined,
+  TWriteReturn = undefined,
+>(): {
+  publish: () => Stream<void, TWrite, void, TWriteReturn>;
+  subscribe: () => Stream<TRead, unknown, TReadReturn, unknown>;
+};
+
+export declare function makeLatestTopic<
+  TRead,
+  TWrite = undefined,
+  TReadReturn = undefined,
+  TWriteReturn = undefined,
+>(): {
+  publish: () => Stream<void, TWrite, void, TWriteReturn>;
+  subscribe: () => Stream<TRead, unknown, TReadReturn, unknown>;
+};
+
 export declare function pump<
   TRead,
   TWrite = unknown,

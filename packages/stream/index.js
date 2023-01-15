@@ -45,17 +45,163 @@ export const makeQueue = () => {
       tailPromise = tailPromise.then(next => next.promise);
       return harden(promise);
     },
-  };
+  });
 };
 harden(makeQueue);
 
 /**
- * @type {import('./types.js').AsyncQueue<void, unknown>}
+ * @template TValue TValue
+ * @param {TValue} value
+ * @returns {import('./types.js').AsyncQueue<TValue, unknown>}
  */
-export const nullQueue = harden({
-  put: () => {},
-  get: async () => {},
-});
+export const makeNullQueue = value => {
+  return Far('NullQueue', {
+    put: () => {},
+    get: async () => value,
+  });
+};
+
+export const nullQueue = makeNullQueue(undefined);
+
+export const nullIteratorQueue = makeNullQueue(
+  freeze({ value: undefined, done: false }),
+);
+
+/**
+ * @template TValue
+ */
+export const makeChangePubSub = () => {
+  // Request pubsub async queue internals
+  let { promise: tailPromise, resolve: tailResolve } = makePromiseKit();
+
+  const pub = () =>
+    Far('Pub', {
+      /**
+       * @param {TValue} value
+       */
+      put: value => {
+        const { resolve, promise } = makePromiseKit();
+        tailResolve(freeze({ value, promise }));
+        tailResolve = resolve;
+        // Unlike a queue, advance the read head for future subscribers.
+        tailPromise = promise;
+      },
+    });
+
+  const sub = () => {
+    // Capture the read head for the next published value.
+    let cursor = tailPromise;
+    return Far('Sub', {
+      get: () => {
+        const promise = cursor.then(next => next.value);
+        cursor = cursor.then(next => next.promise);
+        return harden(promise);
+      },
+    });
+  };
+
+  return Far('PubSub', { pub, sub });
+};
+harden(makeChangePubSub);
+
+/**
+ * @template TValue
+ */
+export const makeUpdatePubSub = () => {
+  // Request pubsub async queue internals
+  let { promise: tailPromise, resolve: tailResolve } = makePromiseKit();
+  let headPromise = tailPromise;
+
+  const pub = () =>
+    Far('Pub', {
+      /**
+       * @param {TValue} value
+       */
+      put: value => {
+        const { resolve, promise } = makePromiseKit();
+        tailResolve(freeze({ value, promise }));
+        tailResolve = resolve;
+        // Unlike a queue, advance the read head for future subscribers.
+        headPromise = tailPromise;
+        tailPromise = promise;
+      },
+    });
+
+  const sub = () => {
+    // Capture the read head for the next published value.
+    let cursor = headPromise;
+    return Far('Sub', {
+      get: () => {
+        const promise = cursor.then(next => next.value);
+        cursor = cursor.then(next => next.promise);
+        return harden(promise);
+      },
+    });
+  };
+
+  return Far('PubSub', { pub, sub });
+};
+harden(makeUpdatePubSub);
+
+/**
+ * A LatestPubSub enables subscribers to discard intermediate values if they
+ * pull slower than the publisher pushes.
+ * Where Update and Change PubSubs manage an internal linked-list of every
+ * node, such that every subscriber can walk the chain independently, the
+ * LatestPubSub tracks each node and whether the node has been replaced, or
+ * "expired".
+ * When a subscriber advances, it waits for the last yielded node to expire and
+ * jumps to the most recently published value.
+ *
+ * @template TValue
+ */
+export const makeLatestPubSub = () => {
+  let { promise: tailPromise, resolve: resolveTail } = makePromiseKit();
+  let { promise: tailExpired, resolve: expireTail } = makePromiseKit();
+  let headPromise = tailPromise;
+  let headExpired = tailExpired;
+
+  const pub = () =>
+    Far('Pub', {
+      /**
+       * @param {TValue} value
+       */
+      put: value => {
+        const { resolve, promise } = makePromiseKit();
+        const { resolve: expire, promise: expired } = makePromiseKit();
+
+        resolveTail(freeze({ value, expired }));
+        expireTail();
+
+        resolveTail = resolve;
+        expireTail = expire;
+
+        headPromise = tailPromise;
+        headExpired = tailExpired;
+
+        tailPromise = promise;
+        tailExpired = expired;
+      },
+    });
+
+  const sub = () => {
+    // Capture the read head for the next published value.
+    let expired = headExpired;
+    return Far('Sub', {
+      get: () => {
+        // Jump to the most recently published value when the previous value
+        // expires.
+        const head = expired.then(() => headPromise);
+        const promise = head.then(next => next.value);
+        expired = head.then(next => next.expired);
+        return harden(promise);
+      },
+    });
+  };
+
+  return Far('PubSub', { pub, sub });
+};
+harden(makeLatestPubSub);
 
 /**
  * @template TRead
@@ -109,6 +255,33 @@ export const makePipe = () => {
   return harden([writer, reader]);
 };
 harden(makePipe);
+
+export const makeChangeTopic = () => {
+  const { pub, sub } = makeChangePubSub();
+  return Far('Topic', {
+    publish: () => makeStream(nullIteratorQueue, pub()),
+    subscribe: () => makeStream(sub(), nullIteratorQueue),
+  });
+};
+harden(makeChangeTopic);
+
+export const makeUpdateTopic = () => {
+  const { pub, sub } = makeUpdatePubSub();
+  return Far('Topic', {
+    publish: () => makeStream(nullIteratorQueue, pub()),
+    subscribe: () => makeStream(sub(), nullIteratorQueue),
+  });
+};
+harden(makeUpdateTopic);
+
+export const makeLatestTopic = () => {
+  const { pub, sub } = makeLatestPubSub();
+  return Far('Topic', {
+    publish: () => makeStream(nullIteratorQueue, pub()),
+    subscribe: () => makeStream(sub(), nullIteratorQueue),
+  });
+};
+harden(makeLatestTopic);
 
 /**
  * @template TRead

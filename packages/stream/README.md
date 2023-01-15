@@ -73,6 +73,70 @@ which promises settle.
 A stream is consequently a pair of queues that transport iteration results,
 one to send messages forward and another to receive acknowledgements.
 
+An async queue is itself an input and output pair.
+The `put` function makes it an async sink, and the `get` function makes it an
+async spring.
+
+## PubSub
+
+We can use streams to publish and subscribe to topics.
+
+- `makeLatestTopic` is suitable for values or snapshots that are periodically
+  updated.
+  New subscribers will see the latest published value immediately (or wait for
+  the first published value).
+  The topic discards intermediate values, so a slow subscriber will not see all
+  values from a fast publisher.
+
+- `makeChangeTopic` is suitable for deltas, patches, or changes starting at an
+  initial value or snapshot.
+  New subscribers will wait for the next published value.
+  Every subscriber will see every value after they subscribe.
+
+  For example, consider a program that tracks pending requests.
+  Each new subscriber should see all currently pending requests and
+  then each subsuequent request as it arrives.
+  The subscriber side would:
+
+  ```js
+  const requests = new Map();
+  const requestsTopic = makeChangeTopic();
+  async function* followRequests() {
+    const pendingRequests = Array.from(requests.values());
+    const subsequentRequests = requestsTopic.subscribe();
+    yield* pendingRequests;
+    yield* subsequentRequests;
+  }
+  ```
+
+- `makeUpdateTopic` preserves intermediate values and each subscriber sees the
+  last published value.
+
+Consumers do not need to expressly dispose of their subscriber.
+Releasing the subscriber for garbage collection is sufficient.
+
+The `makeTopic` functions returns a kit with `publish` and `subscribe`
+functions.
+The `publish` function returns a writer but provides no back-pressure.
+The `subscribe` function returns a reader and also provides no back-pressure.
+
+```js
+const { publish, subscribe } = makeLatestTopic();
+const publisher = publish();
+const subscriber1 = subscribe();
+await publisher.next(value);
+for await (const value of subscriber1) {}
+```
+
+Topics are very similar to pipes, but instead of using `makeQueue`, topics use
+a very similar `makePubSub()` function, which produces one sink and any number
+of springs encapsulating a shared async linked list.
+The topic writer is a stream constructed from the sink and a null spring.
+The null spring provides no forward-pressure.
+The topic readers are streams constructed from a null sink (so no
+back-pressure) and a subscriber spring that serves as an independent
+cursor.
+
 ## Pump
 
 The `pump` function pumps iterations from a reader to a writer.

@@ -655,7 +655,8 @@ const translateGraph = (
      * @param {string} packageLocation
      */
     const digestExternalAliases = (dependencyName, packageLocation) => {
-      const { externalAliases, explicitExports } = graph[packageLocation];
+      const { externalAliases, explicitExports, label, name, path } =
+        graph[packageLocation];
       for (const exportPath of keys(externalAliases).sort()) {
         const targetPath = externalAliases[exportPath];
         // dependency name may be different from package's name,
@@ -664,6 +665,13 @@ const translateGraph = (
         moduleDescriptors[localPath] = {
           compartment: packageLocation,
           module: targetPath,
+          policyId: generatePolicyId({
+            location: packageLocation,
+            isEntry: false,
+            label,
+            name,
+            path,
+          }),
         };
       }
       // if the exports field is not present, then all modules must be accessible

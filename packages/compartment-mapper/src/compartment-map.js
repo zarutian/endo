@@ -105,7 +105,7 @@ const assertTags = (tags, url) => {
  * @param {string} url
  */
 const assertCompartmentModule = (allegedModule, path, url) => {
-  const { compartment, module, ...extra } = allegedModule;
+  const { compartment, module, policyId, ...extra } = allegedModule;
   assertEmptyObject(
     extra,
     `${path} must not have extra properties, got ${q(
@@ -116,6 +116,11 @@ const assertCompartmentModule = (allegedModule, path, url) => {
     compartment,
     'string',
     `${path}.compartment must be a string, got ${q(compartment)} in ${q(url)}`,
+  );
+  assert.typeof(
+    policyId,
+    'string',
+    `${path}.policyId must be a string, got ${q(policyId)} in ${q(url)}`,
   );
   assert.typeof(
     module,
@@ -360,10 +365,9 @@ const assertTypes = (allegedTypes, path, url) => {
  * @param {unknown} allegedPolicy
  * @param {string} path
  * @param {string} [url]
- * @returns {asserts policy is object}
  */
 
-export const assertPolicy = (
+const assertPolicy = (
   allegedPolicy,
   path,
   url = '<unknown-compartment-map.json>',

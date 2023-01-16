@@ -53,7 +53,7 @@ const parserForLanguage = {
  */
 const resolveLocation = (rel, abs) => new URL(rel, abs).toString();
 
-const { keys, values, entries, fromEntries } = Object;
+const { keys, entries, fromEntries } = Object;
 
 /**
  * We attempt to produce compartment maps that are consistent regardless of
@@ -347,6 +347,7 @@ const digestLocation = async (powers, moduleLocation, options) => {
     null,
     2,
   );
+  console.error(archiveCompartmentMapText)
   const archiveCompartmentMapBytes = textEncoder.encode(
     archiveCompartmentMapText,
   );

@@ -1,12 +1,7 @@
 // import "./ses-lockdown.js";
 import 'ses';
 import test from 'ava';
-import { scaffold, readPowers } from './scaffold.js';
-import { loadLocation } from '../src/import.js';
-import { makeArchive } from '../src/archive.js';
-import { parseArchive } from '../src/import-archive.js';
-
-const { read } = readPowers;
+import { scaffold } from './scaffold.js';
 
 const fixture = new URL(
   'fixtures-policy/node_modules/app/index.js',
@@ -30,7 +25,7 @@ const policy = {
       },
       packages: {
         alice: true,
-        carol: true,
+        'app>carol': true,
       },
       builtin: {
         // that's the one builtin name that scaffold is providing by default
@@ -91,8 +86,11 @@ scaffold(
   fixtureAssertionCount,
   {
     shouldFailBeforeArchiveOperations: true,
-    onError: (t, { error, title }) => {
-      t.regex(error.message, /Importing 'hackity' was not allowed by policy/);
+    onError: (t, { error }) => {
+      t.regex(
+        error.message,
+        /Importing 'hackity' as 'dan' was not allowed by policy/,
+      );
     },
     addGlobals: globals,
     policy: {

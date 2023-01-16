@@ -19,7 +19,6 @@ import {
   gatekeepModuleAccess,
   attenuateModuleHook,
   ATTENUATORS_COMPARTMENT,
-  getPolicyFor,
 } from './policy.js';
 
 const { entries, fromEntries, freeze } = Object;
@@ -234,7 +233,7 @@ const makeModuleMapHook = (
         // Policies should be able to allow third-party modules to exit to
         // built-ins explicitly, or have built-ins subverted by modules from
         // specific compartments.
-        gatekeepModuleAccess(moduleSpecifier, compartmentDescriptor.policy, {
+        gatekeepModuleAccess(moduleSpecifier, compartmentDescriptor, {
           exit: true,
         });
         const module = exitModules[exit];
@@ -259,7 +258,7 @@ const makeModuleMapHook = (
       if (foreignModuleSpecifier !== undefined) {
         if (!moduleSpecifier.startsWith('./')) {
           // archive goes through foreignModuleSpecifier for local modules too
-          gatekeepModuleAccess(moduleSpecifier, compartmentDescriptor.policy, {
+          gatekeepModuleAccess(moduleSpecifier, compartmentDescriptor, {
             exit: false,
           });
         }
@@ -275,7 +274,7 @@ const makeModuleMapHook = (
         return foreignCompartment.module(foreignModuleSpecifier);
       }
     } else if (has(exitModules, moduleSpecifier)) {
-      gatekeepModuleAccess(moduleSpecifier, compartmentDescriptor.policy, {
+      gatekeepModuleAccess(moduleSpecifier, compartmentDescriptor, {
         exit: true,
       });
 
@@ -325,6 +324,9 @@ const makeModuleMapHook = (
           );
         }
 
+        gatekeepModuleAccess(moduleSpecifier, compartmentDescriptor, {
+          exit: false,
+        });
         // The following line is weird.
         // Information is flowing backward.
         // This moduleMapHook writes back to the `modules` descriptor, from the
@@ -374,7 +376,6 @@ export const link = (
     moduleTransforms = {},
     __shimTransforms__ = [],
     modules: exitModules = {},
-    policy,
     archiveOnly = false,
     Compartment = defaultCompartment,
   },

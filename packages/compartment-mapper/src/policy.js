@@ -19,16 +19,20 @@ const copyGlobals = (globals, list) => {
   }
   return g;
 };
-const adaptId = id => {
-  const chunks = id.replace(/\/$/, '').split('/node_modules/');
-  if (chunks.length > 1) {
-    chunks.shift();
-  }
-  return chunks.join('>');
-};
+
+/**
+ * Const string to identify the internal attenuators compartment
+ */
 export const ATTENUATORS_COMPARTMENT = '<ATTENUATORS>';
 
 const attenuatorsCache = new WeakMap();
+/**
+ * Goes through policy and lists all attenuator specifiers used.
+ * Memoization keyed on policy object reference
+ *
+ * @param {*} policy
+ * @returns {Array<string>} attenuators
+ */
 export const detectAttenuators = policy => {
   if (!attenuatorsCache.has(policy)) {
     const attenuators = [];
@@ -44,11 +48,26 @@ export const detectAttenuators = policy => {
   return attenuatorsCache.get(policy);
 };
 
+/**
+ * Generates an ID for the package for policy purposes.
+ * Some arguments here are for future proofing - I could imagine using them for IDs instead
+ *
+ * @param {object} root0
+ * @param {string} root0.location
+ * @param {boolean} root0.isEntry - true if location is the entry compartment
+ * @param {string} [root0.label]
+ * @param {string} [root0.name]
+ * @param {Array<string>} [root0.path]
+ *
+ * @returns {string}
+ */
 export const generatePolicyId = ({
   location,
   isEntry = false,
+  // eslint-disable-next-line no-unused-vars
   label,
   name,
+  // eslint-disable-next-line no-unused-vars
   path,
 }) => {
   if (isEntry) {
@@ -120,15 +139,23 @@ export const getAllowedGlobals = (globals, localPolicy) => {
  * Throws if importing of the specifier is not allowed by the policy
  *
  * @param {string} specifier
- * @param {Object} policy
+ * @param {Object} compartmentDescriptor
  * @param {Object} [info]
  */
-export const gatekeepModuleAccess = (specifier, policy, info) => {
+export const gatekeepModuleAccess = (
+  specifier,
+  compartmentDescriptor,
+  info,
+) => {
+  const { policy, modules } = compartmentDescriptor;
+
   const policyChoice = info.exit ? 'builtin' : 'packages';
-  if (policy && (!policy[policyChoice] || !policy[policyChoice][specifier])) {
+
+  const policyId = info.exit ? specifier : modules[specifier].policyId;
+  if (policy && (!policy[policyChoice] || !policy[policyChoice][policyId])) {
     // console.trace(specifier);
     throw Error(
-      `Importing '${specifier}' was not allowed by policy ${policyChoice}:${JSON.stringify(
+      `Importing '${policyId}' as '${specifier}' was not allowed by policy ${policyChoice}:${JSON.stringify(
         policy[policyChoice],
       )}`,
     );

@@ -45,6 +45,7 @@ import {
   getPolicyFor,
   ATTENUATORS_COMPARTMENT,
   generatePolicyId,
+  trimModulesByPolicy,
 } from './policy.js';
 import { join } from './node-module-specifier.js';
 
@@ -698,33 +699,46 @@ const translateGraph = (
         moduleDescriptors[modulePath] = {
           compartment: dependeeLocation,
           module: facetTarget,
+          policyId: generatePolicyId({
+            location: dependeeLocation,
+            isEntry: false,
+            label,
+            name,
+            path,
+          }),
         };
       }
     }
 
-    const packagePolicy = getPolicyFor(
-      generatePolicyId({
-        location: dependeeLocation,
-        isEntry: dependeeLocation === entryPackageLocation,
-        label,
-        name,
-        path,
-      }),
-      policy,
-    );
+    const policyId = generatePolicyId({
+      location: dependeeLocation,
+      isEntry: dependeeLocation === entryPackageLocation,
+      label,
+      name,
+      path,
+    });
+    const packagePolicy = getPolicyFor(policyId, policy);
+
+    const allowedModuleDescriptors = trimModulesByPolicy({
+      policyId,
+      moduleDescriptors,
+      packagePolicy,
+    });
 
     compartments[dependeeLocation] = {
       label,
       name,
       path,
       location: dependeeLocation,
-      modules: moduleDescriptors,
+      modules: allowedModuleDescriptors,
       scopes,
       parsers,
       types,
       policy: packagePolicy,
     };
   }
+
+  console.log('\n\nCOMPRTM\n\n', Object.entries(compartments).map(([k,v])=>({k, modules:v.modules})).map(a=>q(a,0,2)).join())
 
   return {
     tags: [...tags],

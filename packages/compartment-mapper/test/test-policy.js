@@ -87,10 +87,7 @@ scaffold(
   {
     shouldFailBeforeArchiveOperations: true,
     onError: (t, { error }) => {
-      t.regex(
-        error.message,
-        /Importing 'hackity' as 'dan' was not allowed by policy/,
-      );
+      t.regex(error.message, /'dan' was not allowed by policy/);
     },
     addGlobals: globals,
     policy: {

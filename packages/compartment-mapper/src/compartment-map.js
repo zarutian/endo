@@ -105,22 +105,17 @@ const assertTags = (tags, url) => {
  * @param {string} url
  */
 const assertCompartmentModule = (allegedModule, path, url) => {
-  const { compartment, module, policyId, ...extra } = allegedModule;
+  const { compartment, module, ...extra } = allegedModule;
   assertEmptyObject(
     extra,
     `${path} must not have extra properties, got ${q(
-      Object.keys(extra),
+      {extra, compartment},
     )} in ${q(url)}`,
   );
   assert.typeof(
     compartment,
     'string',
     `${path}.compartment must be a string, got ${q(compartment)} in ${q(url)}`,
-  );
-  assert.typeof(
-    policyId,
-    'string',
-    `${path}.policyId must be a string, got ${q(policyId)} in ${q(url)}`,
   );
   assert.typeof(
     module,

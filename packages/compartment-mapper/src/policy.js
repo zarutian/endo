@@ -1,6 +1,6 @@
 // @ts-check
 
-const { create, entries, assign, keys, freeze } = Object;
+const { create, entries, fromEntries, assign, keys, freeze } = Object;
 const { has } = Reflect;
 const { stringify } = JSON;
 
@@ -48,6 +48,33 @@ export const detectAttenuators = policy => {
   return attenuatorsCache.get(policy);
 };
 
+export const trimModulesByPolicy = ({
+  policyId,
+  moduleDescriptors,
+  packagePolicy,
+}) => {
+  if (!packagePolicy) {
+    return fromEntries(
+      entries(moduleDescriptors).map(([_name, { policyId, ...mod }]) => [
+        _name,
+        mod,
+      ]),
+    );
+  }
+  const allAllowed = [
+    policyId, // allow self-referencing
+    ...keys(packagePolicy.packages || {}),
+    ...keys(packagePolicy.builtin || {}),
+  ];
+  console.error({ allAllowed, packagePolicy, moduleDescriptors });
+  return fromEntries(
+    entries(moduleDescriptors)
+      .filter(([_name, moduleDescriptor]) => {
+        return allAllowed.includes(moduleDescriptor.policyId);
+      })
+      .map(([_name, { policyId, ...mod }]) => [_name, mod]),
+  );
+};
 /**
  * Generates an ID for the package for policy purposes.
  * Some arguments here are for future proofing - I could imagine using them for IDs instead
@@ -148,15 +175,27 @@ export const gatekeepModuleAccess = (
   info,
 ) => {
   const { policy, modules } = compartmentDescriptor;
+  if (!policy) {
+    return;
+  }
 
-  const policyChoice = info.exit ? 'builtin' : 'packages';
+  if (!info.exit) {
+    if (!modules[specifier]) {
+      console.error({ specifier, modules });
+      throw Error(
+        `Importing '${specifier}' was not allowed by policy packages:${JSON.stringify(
+          policy.packages,
+        )}`,
+      );
+    }
+    return;
+  }
 
-  const policyId = info.exit ? specifier : modules[specifier].policyId;
-  if (policy && (!policy[policyChoice] || !policy[policyChoice][policyId])) {
-    // console.trace(specifier);
+  if (!policy.builtin || !policy.builtin[specifier]) {
+    console.log('err', compartmentDescriptor);
     throw Error(
-      `Importing '${policyId}' as '${specifier}' was not allowed by policy ${policyChoice}:${JSON.stringify(
-        policy[policyChoice],
+      `Importing '${specifier}' was not allowed by policy 'builtin':${JSON.stringify(
+        policy.builtin,
       )}`,
     );
   }

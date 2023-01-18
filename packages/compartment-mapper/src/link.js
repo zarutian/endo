@@ -201,7 +201,7 @@ const makeModuleMapHook = (
 ) => {
   /**
    * @param {string} moduleSpecifier
-   * @returns {string | Object | undefined}
+   * @returns {string | object | undefined}
    */
   const moduleMapHook = moduleSpecifier => {
     compartmentDescriptor.retained = true;
